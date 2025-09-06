@@ -1,4 +1,5 @@
 .vs
+.vscode
 /bin
 /game/obj
 /raylib-5.5/obj
