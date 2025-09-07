@@ -6,56 +6,54 @@ See documentation here: https://www.raylib.com/, and examples here: https://www.
 #include "raylib.h"
 #include "raymath.h"
 #define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
 #include "game.h"
+#include "raygui.h"
 
 const unsigned int TARGET_FPS = 50; //frames/second
-float dt = 1.0f / TARGET_FPS; //seconds/frame
-float time = 0;
-float x = 500;
-float y = 500;
-float frequency = 1;
-float amplitude = 100;
+float dt = 1.0f / TARGET_FPS; //seconds/frame, 1/50=0.02
+float time = 0.0f;
+float x = 500.0f;
+float y = 500.0f;
+float frequency = 1.0f;
+float amplitude = 100.0f;
 
 //Changes world state
 void update()
 {
-	dt = 1.0f / TARGET_FPS;
-	time += dt;
-
-	x = x + (-sin(time * frequency)) * frequency * amplitude * dt;
-	y = y + (cos(time * frequency)) * frequency * amplitude * dt;
+    time += dt;
+    //frequency appeared twice to make the movement speed proportional to the frequency
+    //which means Higher frequency = faster oscillation AND proportionally faster movement
+    //if I don't want this proportionality then the second frequency is redundant
+    //and I could change to: x = x + (float)(-sin(time * frequency)) * amplitude * dt;
+    x = x + (float)(-sin(time * frequency)) * frequency * amplitude * dt;
+    y = y + (float)(cos(time * frequency)) * frequency * amplitude * dt;
 }
 
 //Display world state
 void draw()
 {
-	BeginDrawing();
-	ClearBackground(BLACK);
-	DrawText("Joss Moo-Young 123456789", 10, float(GetScreenHeight() - 30), 20, LIGHTGRAY);
-
-
-	GuiSliderBar(Rectangle{ 10, 15, 1000, 20 }, "", TextFormat("%.2f", time), &time, 0, 240);
-	DrawText(TextFormat("T: %6.2f", time), GetScreenWidth() - 140, 10, 30, LIGHTGRAY);
-
-	DrawCircle(x, y, 70, RED);
-	DrawCircle(500 + cos(time * frequency) * amplitude, 500 + sin(time * frequency) * amplitude, 70, GREEN);
-
-	EndDrawing();
-
+    BeginDrawing();
+    ClearBackground(BLACK);
+    DrawText("Wen Wen 101539831", 10, GetScreenHeight() - 60, 20, LIGHTGRAY);
+    GuiSliderBar(Rectangle{10, (float)GetScreenHeight() - 30, (float)GetScreenWidth() - 50, 20}, "", TextFormat("%.2f", time), &time, 0, 240);
+    //format string c++: <https://cplusplus.com/reference/cstdio/printf/>
+    DrawText(TextFormat("FPS: %i, TIME: %6.2f", TARGET_FPS, time), GetScreenWidth() - 220, 10, 20, LIGHTGRAY); //6-width, .2-decimal numbers, f-float
+    DrawCircle((int)x, (int)y, 60, RED);
+    //DrawCircleV({x, y}, 60, RED); //accept float
+    DrawCircle((int)(GetScreenWidth() / 2 + cos(time * frequency) * amplitude), (int)(GetScreenHeight() / 2 + sin(time * frequency) * amplitude), 60, GREEN);
+    EndDrawing();
 }
 
 int main()
 {
-	InitWindow(InitialWidth, InitialHeight, "GAME2005 Joss Moo-Young 123456789");
-	SetTargetFPS(TARGET_FPS);
-
-	while (!WindowShouldClose()) // Loops TARGET_FPS times per second
-	{
-		update();
-		draw();
-	}
-
-	CloseWindow();
-	return 0;
+    InitWindow(InitialWidth, InitialHeight, "GAME2005 - Wen Wen 101539831");
+    SetTargetFPS(TARGET_FPS);
+    while (!WindowShouldClose()) //stops only by clicking to close the window or by pressing the Esc key
+    {
+        //Loops TARGET_FPS times per second
+        update();
+        draw();
+    }
+    CloseWindow();
+    return 0;
 }
