@@ -34,13 +34,17 @@ void draw()
 {
     BeginDrawing();
     ClearBackground(BLACK);
+    //------------------------------------------------------
+    //week 1
     DrawText("Wen Wen 101539831", 10, GetScreenHeight() - 60, 20, LIGHTGRAY);
     GuiSliderBar(Rectangle{10, (float)GetScreenHeight() - 30, (float)GetScreenWidth() - 50, 20}, "", TextFormat("%.2f", time), &time, 0, 240);
     //format string c++: <https://cplusplus.com/reference/cstdio/printf/>
     DrawText(TextFormat("FPS: %i, TIME: %6.2f", TARGET_FPS, time), GetScreenWidth() - 220, 10, 20, LIGHTGRAY); //6-width, .2-decimal numbers, f-float
+    //if I drag the slider, the two circles behave differently according to time
     DrawCircle((int)x, (int)y, 60, RED);
     //DrawCircleV({x, y}, 60, RED); //accept float
     DrawCircle((int)(GetScreenWidth() / 2 + cos(time * frequency) * amplitude), (int)(GetScreenHeight() / 2 + sin(time * frequency) * amplitude), 60, GREEN);
+    //------------------------------------------------------
     EndDrawing();
 }
 
