@@ -1,49 +1,61 @@
-/*
-This project uses the Raylib framework to provide us functionality for math, graphics, GUI, input etc.
-See documentation here: https://www.raylib.com/, and examples here: https://www.raylib.com/examples.html
-*/
-
 #include "raylib.h"
 #include "raymath.h"
 #define RAYGUI_IMPLEMENTATION
-#include "game.h"
 #include "raygui.h"
+#include "game.h"
 
 const unsigned int TARGET_FPS = 50; //frames/second
 float dt = 1.0f / TARGET_FPS; //seconds/frame, 1/50=0.02
 float time = 0.0f;
-float x = 500.0f;
-float y = 500.0f;
-float frequency = 1.0f;
-float amplitude = 100.0f;
+constexpr float sliderIndent = 200.0f;
+constexpr int uiFontSize = 20;
+constexpr int uiPaddingSize = 10;
+float x, y, angle, speed;
 
 //Changes world state
 void update()
 {
     time += dt;
-    //frequency appeared twice to make the movement speed proportional to the frequency
-    //which means Higher frequency = faster oscillation AND proportionally faster movement
-    //if I don't want this proportionality then the second frequency is redundant
-    //and I could change to: x = x + (float)(-sin(time * frequency)) * amplitude * dt;
-    x = x + (float)(-sin(time * frequency)) * frequency * amplitude * dt;
-    y = y + (float)(cos(time * frequency)) * frequency * amplitude * dt;
 }
 
 //Display world state
 void draw()
 {
+    const char *t_LaunchPosX = "Launch Pos X";
+    const char *t_LaunchPosY = "Launch Pos Y";
+    const char *t_LaunchAngle = "Launch Angle";
+    const char *t_LaunchSpeed = "Launch Speed";
+    const char *t_X = TextFormat("%.2f", x);
+    const char *t_Y = TextFormat("%.2f", y);
+    const char *t_Angle = TextFormat("%.2f", angle);
+    const char *t_Speed = TextFormat("%.2f", speed);
+
     BeginDrawing();
     ClearBackground(BLACK);
     //------------------------------------------------------
-    //week 1
-    DrawText("Wen Wen 101539831", 10, GetScreenHeight() - 60, 20, LIGHTGRAY);
-    GuiSliderBar(Rectangle{10, (float)GetScreenHeight() - 30, (float)GetScreenWidth() - 50, 20}, "", TextFormat("%.2f", time), &time, 0, 240);
-    //format string c++: <https://cplusplus.com/reference/cstdio/printf/>
-    DrawText(TextFormat("FPS: %i, TIME: %6.2f", TARGET_FPS, time), GetScreenWidth() - 220, 10, 20, LIGHTGRAY); //6-width, .2-decimal numbers, f-float
-    //if I drag the slider, the two circles behave differently according to time
-    DrawCircle((int)x, (int)y, 60, RED);
-    //DrawCircleV({x, y}, 60, RED); //accept float
-    DrawCircle((int)(GetScreenWidth() / 2 + cos(time * frequency) * amplitude), (int)(GetScreenHeight() / 2 + sin(time * frequency) * amplitude), 60, GREEN);
+    //week 2
+    DrawText("Wen Wen 101539831", 10, GetScreenHeight() - 30, 20, LIGHTGRAY);
+
+    GuiSliderBar(Rectangle{sliderIndent, uiPaddingSize, GetScreenWidth() - 2 * sliderIndent, uiFontSize}, "", "", &x, sliderIndent, (float)GetScreenWidth() - sliderIndent);
+    DrawText(t_LaunchPosX, (int)sliderIndent - MeasureText(t_LaunchPosX, uiFontSize) - uiPaddingSize, uiPaddingSize, uiFontSize, WHITE);
+    DrawText(t_X, GetScreenWidth() - (int)sliderIndent + uiPaddingSize, uiPaddingSize, uiFontSize, WHITE);
+
+    GuiSliderBar(Rectangle{sliderIndent, 2 * uiPaddingSize + uiFontSize, GetScreenWidth() - 2 * sliderIndent, uiFontSize}, "", "", &y, sliderIndent, (float)GetScreenHeight() - sliderIndent);
+    DrawText(t_LaunchPosY, (int)sliderIndent - MeasureText(t_LaunchPosY, uiFontSize) - uiPaddingSize, 2 * uiPaddingSize + uiFontSize, uiFontSize, WHITE);
+    DrawText(t_Y, GetScreenWidth() - (int)sliderIndent + uiPaddingSize, 2 * uiPaddingSize + uiFontSize, uiFontSize, WHITE);
+
+    GuiSliderBar(Rectangle{sliderIndent, 3 * uiPaddingSize + 2 * uiFontSize, GetScreenWidth() - 2 * sliderIndent, uiFontSize}, "", "", &angle, 0, 360.0f);
+    DrawText(t_LaunchAngle, (int)sliderIndent - MeasureText(t_LaunchAngle, uiFontSize) - uiPaddingSize, 3 * uiPaddingSize + 2 * uiFontSize, uiFontSize, WHITE);
+    DrawText(t_Angle, GetScreenWidth() - (int)sliderIndent + uiPaddingSize, 3 * uiPaddingSize + 2 * uiFontSize, uiFontSize, WHITE);
+
+    GuiSliderBar(Rectangle{sliderIndent, 4 * uiPaddingSize + 3 * uiFontSize, GetScreenWidth() - 2 * sliderIndent, uiFontSize}, "", "", &speed, 0, 400.0f);
+    DrawText(t_LaunchSpeed, (int)sliderIndent - MeasureText(t_LaunchSpeed, uiFontSize) - uiPaddingSize, 4 * uiPaddingSize + 3 * uiFontSize, uiFontSize, WHITE);
+    DrawText(t_Speed, GetScreenWidth() - (int)sliderIndent + uiPaddingSize, 4 * uiPaddingSize + 3 * uiFontSize, uiFontSize, WHITE);
+
+    DrawCircleV({x, y}, 5.0f, RED);
+    float endX = x + (float)cos(-angle * DEG2RAD) * speed;
+    float endY = y + (float)sin(-angle * DEG2RAD) * speed;
+    DrawLineV({x, y}, {endX, endY}, RED);
     //------------------------------------------------------
     EndDrawing();
 }
