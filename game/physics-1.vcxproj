@@ -295,10 +295,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\game.h" />
     <ClInclude Include="include\raygui.h" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="include\game.h" />
+    <ClInclude Include="include\physics.h" />
+    <ClInclude Include="include\graphics.h" />
+    <ClCompile Include="src\physics.cpp" />
+    <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
