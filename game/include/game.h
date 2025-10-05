@@ -2,7 +2,6 @@
 #include "raygui.h"
 #include "raylib.h"
 #include "raymath.h"
-#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <vector>

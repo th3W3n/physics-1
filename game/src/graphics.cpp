@@ -14,7 +14,7 @@ void drawControlUI(const controlUI &_ui)
     //draw right text
     DrawText(rightText, GetScreenWidth() - (int)_ui.sideSpace + (int)_ui.uiPadding, _ui.uiOrder * (int)_ui.uiPadding + (_ui.uiOrder - 1) * _ui.fontSize, _ui.fontSize, WHITE);
 }
-void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody> &_objs)
+void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody *> &_objs)
 {
     BeginDrawing();
     ClearBackground(BLACK);
@@ -32,8 +32,8 @@ void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody> &_o
     DrawLineV({x, y}, {x, y + g * drawLineLengthFactor}, GREEN);
 
     //draw physic bodies
-    for (auto &obj : _objs)
-        DrawCircleV(obj.position, obj.radius, obj.color);
+    for (auto *obj : _objs)
+        obj->draw();
 
     EndDrawing();
 }

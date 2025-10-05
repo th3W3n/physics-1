@@ -15,4 +15,4 @@ struct controlUI
     const char *leftText;
 };
 void drawControlUI(const controlUI &_ui);
-void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody> &_objs);
+void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody *> &_objs);
