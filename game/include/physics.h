@@ -7,26 +7,50 @@ extern float angle, angleMin, angleMax;
 extern float speed, speedMin, speedMax;
 extern float speedX, speedY;
 extern float g, gMin, gMax;
+extern float halfspaceY, halfspaceYMin, halfspaceYMax;
+extern float halfspaceRot, halfspaceRotMin, halfspaceRotMax;
 
+enum class PHTypes
+{
+    CIRCLE,
+    HALFSPACE
+};
 struct PhysicsBody
 {
-    Vector2 position, velocity;
-    float mass, drag;
+    Vector2 position;
     Color initColor, color;
+    PHTypes type;
     virtual void draw() = 0;
     virtual ~PhysicsBody() = default;
 
   protected:
-    PhysicsBody(
-        Vector2 _pos, Vector2 _vel, float _m, float _d);
+    PhysicsBody(Vector2 _pos);
 };
-struct Circle : PhysicsBody
+struct PhysicsShape : PhysicsBody
+{
+    static int count;
+    Vector2 velocity;
+    float mass, drag;
+
+  protected:
+    PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _d);
+    ~PhysicsShape();
+};
+struct Circle : PhysicsShape
 {
     float radius;
     Circle(
         Vector2 _pos = {0.0f, 0.0f}, Vector2 _vel = {0.0f, 0.0f}, float _m = 1.0f, float _d = 0.0f);
     void draw() override;
 };
+struct Halfspace : PhysicsBody
+{
+    float rotateAngle;
+    Vector2 normal;
+    Halfspace(Vector2 _pos = {InitialWidth / 2.0f, halfspaceY});
+    void draw() override;
+};
+
 class PhysicsSimulation
 {
   public:
@@ -48,4 +72,5 @@ class PhysicsSimulation
   private:
     void destroyOutOfBounds(int _index);
     bool overlapCircleCircle(Circle *_a, Circle *_b);
+    bool overlapCircleHalfspace(Circle *_cir, Halfspace *_hs);
 };

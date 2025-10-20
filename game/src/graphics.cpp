@@ -25,7 +25,7 @@ void draw(const std::vector<controlUI> &_uis, const std::vector<PhysicsBody *> &
         drawControlUI(_ui);
 
     //draw helper visual tools
-    const char *objCount = TextFormat("%d", (int)_objs.size());
+    const char *objCount = TextFormat("%d", PhysicsShape::count);
     DrawText(objCount, InitialWidth - 10 - MeasureText(objCount, 30), InitialHeight - 40, 30, BLUE);
     DrawCircleV({x, y}, 5.0f, RED);
     DrawLineV({x, y}, {x + speedX * drawLineLengthFactor, y + speedY * drawLineLengthFactor}, RED);

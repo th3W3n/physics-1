@@ -17,6 +17,8 @@ int main()
     uis.emplace_back(3, uiPaddingSize, sliderIndent, uiFontSize, angle, angleMin, angleMax, "Launch Angle");
     uis.emplace_back(4, uiPaddingSize, sliderIndent, uiFontSize, speed, speedMin, speedMax, "Launch Speed");
     uis.emplace_back(5, uiPaddingSize, sliderIndent, uiFontSize, g, gMin, gMax, "Gravity");
+    uis.emplace_back(6, uiPaddingSize, sliderIndent, uiFontSize, halfspaceY, halfspaceYMin, halfspaceYMax, "Halfspace Y");
+    uis.emplace_back(7, uiPaddingSize, sliderIndent, uiFontSize, halfspaceRot, halfspaceRotMin, halfspaceRotMax, "Halfspace Rot");
 
     while (!WindowShouldClose())
     {
