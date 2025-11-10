@@ -9,11 +9,18 @@ extern float speedX, speedY;
 extern float g, gMin, gMax;
 extern float halfspaceY, halfspaceYMin, halfspaceYMax;
 extern float halfspaceRot, halfspaceRotMin, halfspaceRotMax;
+extern bool createHalfspace;
+extern int dropdownActive;
+extern bool dropdownEditMode;
+extern std::string dropdownItemsStr;
 
-enum class PHTypes
+enum class PHTypes : uint8_t
 {
-    CIRCLE,
-    HALFSPACE
+    //use flags enum class
+    NONE = 0,
+    CIRCLE = 1 << 0,
+    HALFSPACE = 1 << 1,
+    PH_SHAPES = CIRCLE
 };
 struct PhysicsBody
 {
@@ -31,10 +38,10 @@ struct PhysicsShape : PhysicsBody
     static int count;
     Vector2 velocity;
     float mass, drag;
+    ~PhysicsShape();
 
   protected:
     PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _d);
-    ~PhysicsShape();
 };
 struct Circle : PhysicsShape
 {
@@ -45,7 +52,8 @@ struct Circle : PhysicsShape
 };
 struct Halfspace : PhysicsBody
 {
-    float rotateAngle;
+    float recordedSliderAngleDeg;
+    float rotateAngleRad;
     Vector2 normal;
     Halfspace(Vector2 _pos = {InitialWidth / 2.0f, halfspaceY});
     void draw() override;
@@ -55,6 +63,7 @@ class PhysicsSimulation
 {
   public:
     std::vector<PhysicsBody *> objs; //use pointers for elements to prevent object slicing (for derived objects)
+    std::vector<Halfspace *> hss;
 
   public:
     PhysicsSimulation(int _fps = 50);
@@ -70,7 +79,6 @@ class PhysicsSimulation
     float m_deltaTime, m_time;
 
   private:
-    void destroyOutOfBounds(int _index);
-    bool overlapCircleCircle(Circle *_a, Circle *_b);
-    bool overlapCircleHalfspace(Circle *_cir, Halfspace *_hs);
+    void handleCollision_CircleCircle(Circle *_a, Circle *_b);
+    void handleCollision_CircleHalfspace(Circle *_cir, Halfspace *_hs);
 };

@@ -1,4 +1,5 @@
 #include "physics.h"
+#include <limits>
 
 float x = sliderIndent, xMin = sliderIndent, xMax = (float)InitialWidth - sliderIndent;
 float y = (float)InitialHeight - sliderIndent, yMin = sliderIndent * 1.5f, yMax = (float)InitialHeight - sliderIndent;
@@ -6,8 +7,12 @@ float angle = 0.0f, angleMin = 0.0f, angleMax = 360.0f;
 float speed = 0.0f, speedMin = 0.0f, speedMax = 2000.0f;
 float speedX, speedY;
 float g = 0.0f, gMin = -2000.0f, gMax = 2000.0f;
-float halfspaceY = (float)InitialHeight - 100.0f, halfspaceYMin = 250.0f, halfspaceYMax = (float)InitialHeight - 50.0f;
+float halfspaceY = (float)InitialHeight - 100.0f, halfspaceYMin = 0.0f, halfspaceYMax = 1000.0f;
 float halfspaceRot = 0.0f, halfspaceRotMin = 0.0f, halfspaceRotMax = 360.0f;
+bool createHalfspace = false;
+int dropdownActive = 0;
+bool dropdownEditMode = false;
+std::string dropdownItemsStr = "";
 
 int PhysicsShape::count = 0;
 
@@ -38,14 +43,14 @@ void Circle::draw()
 Halfspace::Halfspace(Vector2 _pos) : PhysicsBody(_pos)
 {
     type = PHTypes::HALFSPACE;
-    rotateAngle = 0.0f;
+    recordedSliderAngleDeg = rotateAngleRad = 0.0f;
     normal = {0.0f, -1.0f}; //pointing upward by default
 }
 void Halfspace::draw()
 {
     DrawCircleV(position, 5.0f, color);
     DrawLineV(position, position + normal * 50, color);
-    Vector2 surface = Vector2Rotate({1.0f, 0.0f}, rotateAngle) * 3000.0f;
+    Vector2 surface = Vector2Rotate({1.0f, 0.0f}, rotateAngleRad) * 3000.0f;
     DrawLineV(position - surface, position + surface, color);
 }
 
@@ -55,7 +60,7 @@ PhysicsSimulation::PhysicsSimulation(int _fps) : m_g({0.0f, g})
     m_deltaTime = 1.0f / m_fps;
     m_time = 0.0f;
     objs.reserve(100); //reserve for faster performance
-    objs.push_back(new Halfspace());
+    hss.reserve(10);
 }
 PhysicsSimulation::~PhysicsSimulation()
 {
@@ -64,38 +69,68 @@ PhysicsSimulation::~PhysicsSimulation()
 }
 void PhysicsSimulation::tick()
 {
+    m_time += m_deltaTime;
+    //halfspaces----------------------------------------------------
+    if (createHalfspace) //pass slider params at creation of new halfspace
+    {
+        createHalfspace = false;
+        Halfspace *hs = new Halfspace();
+        hs->position.y = halfspaceY;
+        hs->recordedSliderAngleDeg = halfspaceRot;
+        hs->rotateAngleRad = -halfspaceRot * DEG2RAD;
+        hs->normal = Vector2Rotate({0.0f, -1.0f}, hs->rotateAngleRad);
+        objs.push_back(hs);
+        hss.push_back(hs);
+    }
+    if (!hss.empty()) //pass slider params when selected as currently active halfspace
+    {
+        hss[dropdownActive]->position.y = halfspaceY;
+        hss[dropdownActive]->recordedSliderAngleDeg = halfspaceRot;
+        hss[dropdownActive]->rotateAngleRad = -halfspaceRot * DEG2RAD;
+        hss[dropdownActive]->normal = Vector2Rotate({0.0f, -1.0f}, hss[dropdownActive]->rotateAngleRad);
+    }
+    //other physics shapes----------------------------------------------------
     if (m_g.y != g) // Only update when changed
         m_g.y = g;
-    m_time += m_deltaTime;
-    float angleInRadiant = -angle * DEG2RAD;
-    float hsAngleInRadiant = -halfspaceRot * DEG2RAD;
-    speedX = cosf(angleInRadiant) * speed;
-    speedY = sinf(angleInRadiant) * speed;
+    static float lastAngle = 0.0f, lastSpeed = 0.0f;
+    if (lastAngle != angle || lastSpeed != speed) // Only update when changed
+    {
+        float angleInRadiant = -angle * DEG2RAD;
+        speedX = cosf(angleInRadiant) * speed;
+        speedY = sinf(angleInRadiant) * speed;
+        lastAngle = angle;
+        lastSpeed = speed;
+    }
     if (IsKeyPressed(KEY_SPACE))
     {
         objs.push_back(new Circle(Vector2{x, y}, Vector2{speedX, speedY}));
     }
-    for (int i = static_cast<int>(objs.size()) - 1; i >= 0; i--)
+    for (auto &obj : objs)
     {
-        auto &obj = objs[i];
         obj->color = obj->initColor; //reset color before collision test
-        Halfspace *hs = dynamic_cast<Halfspace *>(obj);
-        PhysicsShape *shape = dynamic_cast<PhysicsShape *>(obj);
-
-        if (hs)
+        if (obj->type == PHTypes::PH_SHAPES)
         {
-            hs->position.y = halfspaceY;
-            hs->rotateAngle = hsAngleInRadiant;
-            hs->normal = Vector2Rotate({0.0f, -1.0f}, hs->rotateAngle);
-        }
-        else if (shape)
-        {
+            PhysicsShape *shape = (PhysicsShape *)obj;
             shape->velocity += m_g * m_deltaTime;
             shape->position += shape->velocity * m_deltaTime;
-            destroyOutOfBounds(i);
         }
     }
-    checkCollision();
+    checkCollision(); //TODO: make velocity stops growing with m_g once collided
+    //destroy the ball when out of bounds
+    for (int i = static_cast<int>(objs.size()) - 1; i >= 0; i--)
+    {
+        PhysicsBody *obj = objs[i];
+        if (obj->type == PHTypes::PH_SHAPES)
+        {
+            if (obj->position.x < 0.0f || obj->position.x > (float)InitialWidth ||
+                obj->position.y < 0.0f || obj->position.y > (float)InitialHeight)
+            {
+                delete obj;
+                objs[i] = objs.back();
+                objs.pop_back();
+            }
+        }
+    }
 }
 void PhysicsSimulation::checkCollision()
 {
@@ -106,48 +141,54 @@ void PhysicsSimulation::checkCollision()
         for (size_t j = i + 1; j < size; j++)
         {
             PhysicsBody *b = objs[j];
-            bool isOverlap = false;
             if (a->type == PHTypes::CIRCLE && b->type == PHTypes::CIRCLE)
-                isOverlap = overlapCircleCircle((Circle *)a, (Circle *)b);
+                handleCollision_CircleCircle((Circle *)a, (Circle *)b);
             else if (a->type == PHTypes::CIRCLE && b->type == PHTypes::HALFSPACE)
-                isOverlap = overlapCircleHalfspace((Circle *)a, (Halfspace *)b);
+                handleCollision_CircleHalfspace((Circle *)a, (Halfspace *)b);
             else if (a->type == PHTypes::HALFSPACE && b->type == PHTypes::CIRCLE)
-                isOverlap = overlapCircleHalfspace((Circle *)b, (Halfspace *)a);
-            if (isOverlap)
-                a->color = b->color = RED;
+                handleCollision_CircleHalfspace((Circle *)b, (Halfspace *)a);
         }
     }
 }
 
 int PhysicsSimulation::getFPS() const { return m_fps; }
 
-void PhysicsSimulation::destroyOutOfBounds(int _index)
+void PhysicsSimulation::handleCollision_CircleCircle(Circle *_a, Circle *_b)
 {
-    PhysicsBody *obj = objs[_index];
-    if (obj->position.x < 0.0f || obj->position.x > (float)InitialWidth ||
-        obj->position.y < 0.0f || obj->position.y > (float)InitialHeight)
-    {
-        delete obj;
-        objs[_index] = objs.back();
-        objs.pop_back();
-    }
-}
-bool PhysicsSimulation::overlapCircleCircle(Circle *_a, Circle *_b)
-{
-    //Vector2Length is less efficient, so just compare squared values
-    float distanceSquared = Vector2LengthSqr(_b->position - _a->position);
+    //using squared comparison is more performant
+    Vector2 displacementAtoB = _b->position - _a->position;
+    float distanceSquared = Vector2LengthSqr(displacementAtoB);
     float sumOfRadii = _a->radius + _b->radius;
     if (sumOfRadii * sumOfRadii > distanceSquared)
-        return true;
-    else
-        return false;
+    {
+        float distance = Vector2Length(displacementAtoB);
+        float overlap = sumOfRadii - distance;
+
+        Vector2 dirAtoB;
+        //if 2 circles are too close (e.g. both created at the same spot)
+        if (distance <= std::numeric_limits<float>::epsilon())
+        {
+            float randomAngle = (rand() % 360) * DEG2RAD; //0-359 degrees in radians
+            dirAtoB = {cosf(randomAngle), sinf(randomAngle)};
+        }
+        else
+            //since distance cannot be 0, so it's also necessary to add the if above
+            dirAtoB = displacementAtoB / distance;
+        Vector2 mtv = dirAtoB * overlap; //minimum translation vector
+        _a->position -= mtv * 0.5f;
+        _b->position += mtv * 0.5f;
+        _a->color = _b->color = RED;
+    }
 }
-bool PhysicsSimulation::overlapCircleHalfspace(Circle *_cir, Halfspace *_hs)
+void PhysicsSimulation::handleCollision_CircleHalfspace(Circle *_cir, Halfspace *_hs)
 {
     Vector2 displacementToCircle = _cir->position - _hs->position;
     float dotProduct = Vector2DotProduct(displacementToCircle, _hs->normal);
-    if (_cir->radius > dotProduct)
-        return true;
-    else
-        return false;
+    float overlap = _cir->radius - dotProduct;
+    if (overlap >= 0)
+    {
+        Vector2 mtv = _hs->normal * overlap;
+        _cir->position += mtv;
+        _cir->color = _hs->color = RED;
+    }
 }

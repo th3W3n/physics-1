@@ -11,19 +11,39 @@ int main()
     PhysicsSimulation ps;
     SetTargetFPS(ps.getFPS());
 
-    std::vector<controlUI> uis;
-    uis.emplace_back(1, uiPaddingSize, sliderIndent, uiFontSize, x, xMin, xMax, "Launch Pos X");
-    uis.emplace_back(2, uiPaddingSize, sliderIndent, uiFontSize, y, yMin, yMax, "Launch Pos Y");
-    uis.emplace_back(3, uiPaddingSize, sliderIndent, uiFontSize, angle, angleMin, angleMax, "Launch Angle");
-    uis.emplace_back(4, uiPaddingSize, sliderIndent, uiFontSize, speed, speedMin, speedMax, "Launch Speed");
-    uis.emplace_back(5, uiPaddingSize, sliderIndent, uiFontSize, g, gMin, gMax, "Gravity");
-    uis.emplace_back(6, uiPaddingSize, sliderIndent, uiFontSize, halfspaceY, halfspaceYMin, halfspaceYMax, "Halfspace Y");
-    uis.emplace_back(7, uiPaddingSize, sliderIndent, uiFontSize, halfspaceRot, halfspaceRotMin, halfspaceRotMax, "Halfspace Rot");
+    std::vector<controlUI> sliders;
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, x, xMin, xMax, "Launch Pos X");
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, y, yMin, yMax, "Launch Pos Y");
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, angle, angleMin, angleMax, "Launch Angle");
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, speed, speedMin, speedMax, "Launch Speed");
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, g, gMin, gMax, "Gravity");
+
+    std::vector<std::function<void()>> uis;
+    GuiSetStyle(DEFAULT, TEXT_SIZE, uiFontSize);
+    GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, ColorToInt(BLUE));
+    GuiSetStyle(DROPDOWNBOX, TEXT_COLOR_NORMAL, ColorToInt(BLACK));
+    uis.emplace_back([]() {
+        if (GuiButton(Rectangle{1010, 160, 150, 50}, "New Halfspace"))
+            createHalfspace = true;
+    });
 
     while (!WindowShouldClose())
     {
+        if (createHalfspace && sliders.size() == 5)
+        {
+            sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, halfspaceY, halfspaceYMin, halfspaceYMax, "Halfspace Y", 0.7f);
+            sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, halfspaceRot, halfspaceRotMin, halfspaceRotMax, "Halfspace Rot", 0.7f);
+            uis.emplace_back([&ps]() {
+                if (GuiDropdownBox(Rectangle{850, 160, 150, 50}, getHalfspacesForDropdown(ps.hss), &dropdownActive, dropdownEditMode))
+                {
+                    dropdownEditMode = !dropdownEditMode;
+                    halfspaceY = ps.hss[dropdownActive]->position.y;
+                    halfspaceRot = ps.hss[dropdownActive]->recordedSliderAngleDeg;
+                }
+            });
+        }
         ps.tick();
-        draw(uis, ps.objs);
+        draw(sliders, uis, ps.objs);
     }
     CloseWindow();
 

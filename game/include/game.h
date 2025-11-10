@@ -4,6 +4,8 @@
 #include "raymath.h"
 #include <cstdlib>
 #include <ctime>
+#include <functional>
+#include <string>
 #include <vector>
 
 static constexpr int InitialWidth = 1200;
