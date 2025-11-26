@@ -9,8 +9,9 @@
 #include <vector>
 
 static constexpr int InitialWidth = 1200;
-static constexpr int InitialHeight = 800;
+static constexpr int InitialHeight = 1000;
 static constexpr float uiPaddingSize = 10.0f;
 static constexpr float sliderIndent = 200.0f;
 static constexpr int uiFontSize = 20;
-static constexpr float drawLineLengthFactor = 0.1f;
+static constexpr float drawLineLengthFactor = 0.5f;
+static constexpr float drawLineLengthFactorForce = 0.1f;

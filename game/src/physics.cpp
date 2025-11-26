@@ -6,13 +6,15 @@ float y = (float)InitialHeight - sliderIndent, yMin = sliderIndent * 1.5f, yMax 
 float angle = 0.0f, angleMin = 0.0f, angleMax = 360.0f;
 float speed = 0.0f, speedMin = 0.0f, speedMax = 2000.0f;
 float speedX, speedY;
-float g = 0.0f, gMin = -2000.0f, gMax = 2000.0f;
+float g = 0.0f, gMin = -1000.0f, gMax = 1000.0f;
 float halfspaceY = (float)InitialHeight - 100.0f, halfspaceYMin = 0.0f, halfspaceYMax = 1000.0f;
 float halfspaceRot = 0.0f, halfspaceRotMin = 0.0f, halfspaceRotMax = 360.0f;
 bool createHalfspace = false;
 int dropdownActive = 0;
 bool dropdownEditMode = false;
 std::string dropdownItemsStr = "";
+float mass = 10.0f, massMin = 1.0f, massMax = 100.0f;
+float mu = 0.5f, muMin = 0.0f, muMax = 1.0f;
 
 int PhysicsShape::count = 0;
 
@@ -23,15 +25,16 @@ PhysicsBody::PhysicsBody(Vector2 _pos) : position(_pos)
     unsigned char blue = (rand() % 256);
     initColor = color = {red, green, blue, 255};
 }
-PhysicsShape::PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _d) : PhysicsBody(_pos), velocity(_vel), mass(_m), drag(_d)
+PhysicsShape::PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _mu) : PhysicsBody(_pos), velocity(_vel), mass(_m), mu(_mu)
 {
     count++;
+    fg = fn = ff = {0.0f, 0.0f};
 }
 PhysicsShape::~PhysicsShape()
 {
     count--;
 }
-Circle::Circle(Vector2 _pos, Vector2 _vel, float _m, float _d) : PhysicsShape(_pos, _vel, _m, _d)
+Circle::Circle(Vector2 _pos, Vector2 _vel, float _m, float _mu) : PhysicsShape(_pos, _vel, _m, _mu)
 {
     type = PHTypes::CIRCLE;
     radius = 10.0f + (rand() % 31); //10-40
@@ -39,6 +42,10 @@ Circle::Circle(Vector2 _pos, Vector2 _vel, float _m, float _d) : PhysicsShape(_p
 void Circle::draw()
 {
     DrawCircleV(position, radius, color);
+    DrawLineV(position, position + fg * drawLineLengthFactorForce, PURPLE);
+    DrawLineV(position, position + fn * drawLineLengthFactorForce, GREEN);
+    DrawLineV(position, position + ff * drawLineLengthFactorForce, ORANGE);
+    DrawLineV(position, position + velocity * drawLineLengthFactor, RED);
 }
 Halfspace::Halfspace(Vector2 _pos) : PhysicsBody(_pos)
 {
@@ -70,7 +77,7 @@ PhysicsSimulation::~PhysicsSimulation()
 void PhysicsSimulation::tick()
 {
     m_time += m_deltaTime;
-    //halfspaces----------------------------------------------------
+    //-------------------------halfspaces-------------------------
     if (createHalfspace) //pass slider params at creation of new halfspace
     {
         createHalfspace = false;
@@ -89,7 +96,7 @@ void PhysicsSimulation::tick()
         hss[dropdownActive]->rotateAngleRad = -halfspaceRot * DEG2RAD;
         hss[dropdownActive]->normal = Vector2Rotate({0.0f, -1.0f}, hss[dropdownActive]->rotateAngleRad);
     }
-    //other physics shapes----------------------------------------------------
+    //-------------------------other physics shapes-------------------------
     if (m_g.y != g) // Only update when changed
         m_g.y = g;
     static float lastAngle = 0.0f, lastSpeed = 0.0f;
@@ -103,36 +110,48 @@ void PhysicsSimulation::tick()
     }
     if (IsKeyPressed(KEY_SPACE))
     {
-        objs.push_back(new Circle(Vector2{x, y}, Vector2{speedX, speedY}));
+        Circle *circle = new Circle(Vector2{x, y}, Vector2{speedX, speedY}, mass, mu);
+        circle->fg = m_g * circle->mass;
+        objs.push_back(circle);
     }
+    testFunc(); //TEST codes
+    //-------------------------simulation pipeline-------------------------
+    updateState();
+    resetState();
+    handleCollisions();
+    destroyPhysicsShapeOutOfBounds();
+}
+int PhysicsSimulation::getFPS() const { return m_fps; }
+
+void PhysicsSimulation::updateState()
+{
     for (auto &obj : objs)
     {
-        obj->color = obj->initColor; //reset color before collision test
         if (obj->type == PHTypes::PH_SHAPES)
         {
             PhysicsShape *shape = (PhysicsShape *)obj;
-            shape->velocity += m_g * m_deltaTime;
+            Vector2 acceleration = (shape->fg + shape->fn + shape->ff) / shape->mass;
+            //velocity and position are not reset, they continue from last frame
+            shape->velocity += acceleration * m_deltaTime;
             shape->position += shape->velocity * m_deltaTime;
         }
     }
-    checkCollision(); //TODO: make velocity stops growing with m_g once collided
-    //destroy the ball when out of bounds
-    for (int i = static_cast<int>(objs.size()) - 1; i >= 0; i--)
+}
+void PhysicsSimulation::resetState()
+{
+    for (auto &obj : objs)
     {
-        PhysicsBody *obj = objs[i];
+        obj->color = obj->initColor; //reset color per frame
         if (obj->type == PHTypes::PH_SHAPES)
         {
-            if (obj->position.x < 0.0f || obj->position.x > (float)InitialWidth ||
-                obj->position.y < 0.0f || obj->position.y > (float)InitialHeight)
-            {
-                delete obj;
-                objs[i] = objs.back();
-                objs.pop_back();
-            }
+            PhysicsShape *shape = (PhysicsShape *)obj;
+            //reset fn/ff per frame (fg stays constant)
+            shape->fg = shape->fn = shape->ff = {0.0f, 0.0f};
+            shape->fg = m_g * shape->mass;
         }
     }
 }
-void PhysicsSimulation::checkCollision()
+void PhysicsSimulation::handleCollisions()
 {
     size_t size = objs.size();
     for (size_t i = 0; i < size; i++)
@@ -150,9 +169,24 @@ void PhysicsSimulation::checkCollision()
         }
     }
 }
-
-int PhysicsSimulation::getFPS() const { return m_fps; }
-
+void PhysicsSimulation::destroyPhysicsShapeOutOfBounds()
+{
+    //destroy the ball when out of bounds
+    for (int i = static_cast<int>(objs.size()) - 1; i >= 0; i--)
+    {
+        PhysicsBody *obj = objs[i];
+        if (obj->type == PHTypes::PH_SHAPES)
+        {
+            if (obj->position.x < 0.0f || obj->position.x > (float)InitialWidth ||
+                obj->position.y < 0.0f || obj->position.y > (float)InitialHeight)
+            {
+                delete obj;
+                objs[i] = objs.back();
+                objs.pop_back();
+            }
+        }
+    }
+}
 void PhysicsSimulation::handleCollision_CircleCircle(Circle *_a, Circle *_b)
 {
     //using squared comparison is more performant
@@ -187,8 +221,48 @@ void PhysicsSimulation::handleCollision_CircleHalfspace(Circle *_cir, Halfspace 
     float overlap = _cir->radius - dotProduct;
     if (overlap >= 0)
     {
+        //correct penetration
         Vector2 mtv = _hs->normal * overlap;
         _cir->position += mtv;
         _cir->color = _hs->color = RED;
+
+        //correct forces
+        Vector2 fgPerp = _hs->normal * Vector2DotProduct(_cir->fg, _hs->normal);
+        _cir->fn = fgPerp * -1;
+        Vector2 fgPara = _cir->fg - fgPerp;
+        float frictionMagnitudeMax = _cir->mu * Vector2Length(_cir->fn);
+        if (Vector2Length(fgPara) <= frictionMagnitudeMax)
+            _cir->ff = fgPara * -1;
+        else
+            _cir->ff = Vector2Normalize(fgPara * -1) * frictionMagnitudeMax;
+    }
+}
+void PhysicsSimulation::testFunc()
+{
+    if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_E) || IsKeyPressed(KEY_R))
+    {
+        Circle *circle;
+        if (IsKeyPressed(KEY_Q))
+        {
+            circle = new Circle(Vector2{x, y}, Vector2{speedX, speedY}, 2.0f, 0.1f);
+            circle->initColor = circle->color = RED;
+        }
+        else if (IsKeyPressed(KEY_W))
+        {
+            circle = new Circle(Vector2{x, y}, Vector2{speedX, speedY}, 2.0f, 0.8f);
+            circle->initColor = circle->color = GREEN;
+        }
+        else if (IsKeyPressed(KEY_E))
+        {
+            circle = new Circle(Vector2{x, y}, Vector2{speedX, speedY}, 8.0f, 0.1f);
+            circle->initColor = circle->color = BLUE;
+        }
+        else
+        {
+            circle = new Circle(Vector2{x, y}, Vector2{speedX, speedY}, 8.0f, 0.8f);
+            circle->initColor = circle->color = YELLOW;
+        }
+        circle->fg = m_g * circle->mass;
+        objs.push_back(circle);
     }
 }

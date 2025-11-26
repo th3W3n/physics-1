@@ -12,6 +12,8 @@ int main()
     SetTargetFPS(ps.getFPS());
 
     std::vector<controlUI> sliders;
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, mass, massMin, massMax, "Mass");
+    sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, mu, muMin, muMax, "Friction Mu");
     sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, x, xMin, xMax, "Launch Pos X");
     sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, y, yMin, yMax, "Launch Pos Y");
     sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, angle, angleMin, angleMax, "Launch Angle");
@@ -23,18 +25,18 @@ int main()
     GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, ColorToInt(BLUE));
     GuiSetStyle(DROPDOWNBOX, TEXT_COLOR_NORMAL, ColorToInt(BLACK));
     uis.emplace_back([]() {
-        if (GuiButton(Rectangle{1010, 160, 150, 50}, "New Halfspace"))
+        if (GuiButton(Rectangle{1010, 220, 150, 50}, "New Halfspace"))
             createHalfspace = true;
     });
 
     while (!WindowShouldClose())
     {
-        if (createHalfspace && sliders.size() == 5)
+        if (createHalfspace && sliders.size() == 7)
         {
             sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, halfspaceY, halfspaceYMin, halfspaceYMax, "Halfspace Y", 0.7f);
             sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, halfspaceRot, halfspaceRotMin, halfspaceRotMax, "Halfspace Rot", 0.7f);
             uis.emplace_back([&ps]() {
-                if (GuiDropdownBox(Rectangle{850, 160, 150, 50}, getHalfspacesForDropdown(ps.hss), &dropdownActive, dropdownEditMode))
+                if (GuiDropdownBox(Rectangle{850, 220, 150, 50}, getHalfspacesForDropdown(ps.hss), &dropdownActive, dropdownEditMode))
                 {
                     dropdownEditMode = !dropdownEditMode;
                     halfspaceY = ps.hss[dropdownActive]->position.y;

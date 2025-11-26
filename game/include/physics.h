@@ -13,6 +13,8 @@ extern bool createHalfspace;
 extern int dropdownActive;
 extern bool dropdownEditMode;
 extern std::string dropdownItemsStr;
+extern float mass, massMin, massMax;
+extern float mu, muMin, muMax;
 
 enum class PHTypes : uint8_t
 {
@@ -36,18 +38,19 @@ struct PhysicsBody
 struct PhysicsShape : PhysicsBody
 {
     static int count;
+    Vector2 fg, fn, ff; //force by gravity/normal/friction
     Vector2 velocity;
-    float mass, drag;
+    float mass, mu; //mu: coefficient of friction
     ~PhysicsShape();
 
   protected:
-    PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _d);
+    PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _mu);
 };
 struct Circle : PhysicsShape
 {
     float radius;
     Circle(
-        Vector2 _pos = {0.0f, 0.0f}, Vector2 _vel = {0.0f, 0.0f}, float _m = 1.0f, float _d = 0.0f);
+        Vector2 _pos, Vector2 _vel, float _m, float _mu);
     void draw() override;
 };
 struct Halfspace : PhysicsBody
@@ -69,8 +72,7 @@ class PhysicsSimulation
     PhysicsSimulation(int _fps = 50);
     ~PhysicsSimulation();
     void tick();
-    void checkCollision();
-    //getters and setters
+    //-------------------------getters and setters-------------------------
     int getFPS() const;
 
   private:
@@ -79,6 +81,14 @@ class PhysicsSimulation
     float m_deltaTime, m_time;
 
   private:
+    //-------------------------simulation pipeline-------------------------
+    //predictor-corrector pattern
+    void updateState(); //predictor: move as if no collision
+    void resetState();
+    void handleCollisions(); //corrector: corrects position (mtv) and forces
+    void destroyPhysicsShapeOutOfBounds();
+    //---------------------------------------------------------------------
     void handleCollision_CircleCircle(Circle *_a, Circle *_b);
     void handleCollision_CircleHalfspace(Circle *_cir, Halfspace *_hs);
+    void testFunc(); //TEST codes
 };
