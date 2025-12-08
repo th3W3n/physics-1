@@ -41,6 +41,7 @@ struct PhysicsShape : PhysicsBody
     Vector2 fg, fn, ff; //force by gravity/normal/friction
     Vector2 velocity;
     float mass, mu; //mu: coefficient of friction
+    float COR; //bounciness (coefficient of restitution)
     ~PhysicsShape();
 
   protected:
@@ -49,8 +50,7 @@ struct PhysicsShape : PhysicsBody
 struct Circle : PhysicsShape
 {
     float radius;
-    Circle(
-        Vector2 _pos, Vector2 _vel, float _m, float _mu);
+    Circle(Vector2 _pos, Vector2 _vel, float _m, float _mu);
     void draw() override;
 };
 struct Halfspace : PhysicsBody

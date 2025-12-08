@@ -28,6 +28,7 @@ PhysicsBody::PhysicsBody(Vector2 _pos) : position(_pos)
 PhysicsShape::PhysicsShape(Vector2 _pos, Vector2 _vel, float _m, float _mu) : PhysicsBody(_pos), velocity(_vel), mass(_m), mu(_mu)
 {
     count++;
+    COR = rand() / (float)RAND_MAX;
     fg = fn = ff = {0.0f, 0.0f};
 }
 PhysicsShape::~PhysicsShape()
@@ -198,8 +199,8 @@ void PhysicsSimulation::handleCollision_CircleCircle(Circle *_a, Circle *_b)
         float distance = Vector2Length(displacementAtoB);
         float overlap = sumOfRadii - distance;
 
-        Vector2 dirAtoB;
-        //if 2 circles are too close (e.g. both created at the same spot)
+        Vector2 dirAtoB; //unit vector
+        //if 2 circles are way too close (e.g. both created at the same spot)
         if (distance <= std::numeric_limits<float>::epsilon())
         {
             float randomAngle = (rand() % 360) * DEG2RAD; //0-359 degrees in radians
@@ -212,6 +213,23 @@ void PhysicsSimulation::handleCollision_CircleCircle(Circle *_a, Circle *_b)
         _a->position -= mtv * 0.5f;
         _b->position += mtv * 0.5f;
         _a->color = _b->color = RED;
+
+        //relative velocity from the perspective of A (B relative to A)
+        Vector2 vBtoA = _b->velocity - _a->velocity;
+        //we already have a collision normal which is dirAtoB
+        float closingSpeedBtoA = Vector2DotProduct(vBtoA, dirAtoB);
+        if (closingSpeedBtoA < 0) //colliding!
+        {
+            float COR = fminf(_a->COR, _b->COR);
+            float reducedMass = _a->mass * _b->mass / (_a->mass + _b->mass);
+            float impulseMag = -(1.0f + COR) * closingSpeedBtoA * reducedMass;
+            Vector2 impulseForA = dirAtoB * -impulseMag;
+            Vector2 impulseForB = dirAtoB * impulseMag;
+
+            //apply impulse
+            _a->velocity += impulseForA / _a->mass;
+            _b->velocity += impulseForB / _b->mass;
+        }
     }
 }
 void PhysicsSimulation::handleCollision_CircleHalfspace(Circle *_cir, Halfspace *_hs)
@@ -235,6 +253,14 @@ void PhysicsSimulation::handleCollision_CircleHalfspace(Circle *_cir, Halfspace 
             _cir->ff = fgPara * -1;
         else
             _cir->ff = Vector2Normalize(fgPara * -1) * frictionMagnitudeMax;
+
+        //correct velocity
+        float closingSpeed = Vector2DotProduct(_cir->velocity, _hs->normal);
+        if (closingSpeed < 0) //colliding!
+        {
+            float restitutionSpeed = -(1.0f + _cir->COR) * closingSpeed;
+            _cir->velocity += _hs->normal * restitutionSpeed;
+        }
     }
 }
 void PhysicsSimulation::testFunc()

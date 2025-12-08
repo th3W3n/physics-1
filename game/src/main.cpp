@@ -1,6 +1,8 @@
 #define RAYGUI_IMPLEMENTATION
 #include "graphics.h"
 
+bool isDebugging = false;
+
 int main()
 {
     InitWindow(InitialWidth, InitialHeight, "GAME2005 - Wen Wen 101539831");
@@ -31,6 +33,8 @@ int main()
 
     while (!WindowShouldClose())
     {
+        conditionalBreakpointDebug(); //TEST debug utility
+
         if (createHalfspace && sliders.size() == 7)
         {
             sliders.emplace_back(uiPaddingSize, sliderIndent, uiFontSize, halfspaceY, halfspaceYMin, halfspaceYMax, "Halfspace Y", 0.7f);

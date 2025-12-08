@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -15,3 +16,14 @@ static constexpr float sliderIndent = 200.0f;
 static constexpr int uiFontSize = 20;
 static constexpr float drawLineLengthFactor = 0.5f;
 static constexpr float drawLineLengthFactorForce = 0.1f;
+
+//TEST debug utility
+extern bool isDebugging;
+static void conditionalBreakpointDebug()
+{
+    if (IsKeyPressed(KEY_GRAVE)) //tilde key
+    {
+        isDebugging = !isDebugging;
+        std::cout << "isDebugging: " << isDebugging << std::endl;
+    }
+}
