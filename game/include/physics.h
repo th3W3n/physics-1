@@ -15,15 +15,21 @@ extern bool dropdownEditMode;
 extern std::string dropdownItemsStr;
 extern float mass, massMin, massMax;
 extern float mu, muMin, muMax;
+extern bool isLaunchingAABB;
 
 enum class PHTypes : uint8_t
 {
     //use flags enum class
     NONE = 0,
     CIRCLE = 1 << 0,
-    HALFSPACE = 1 << 1,
-    PH_SHAPES = CIRCLE
+    AABB = 1 << 1,
+    HALFSPACE = 1 << 2,
+    PH_SHAPES = CIRCLE | AABB
 };
+inline PHTypes operator&(PHTypes _a, PHTypes _b)
+{
+    return static_cast<PHTypes>(static_cast<uint8_t>(_a) & static_cast<uint8_t>(_b));
+}
 struct PhysicsBody
 {
     Vector2 position;
@@ -38,6 +44,7 @@ struct PhysicsBody
 struct PhysicsShape : PhysicsBody
 {
     static int count;
+    bool isStatic = false;
     Vector2 fg, fn, ff; //force by gravity/normal/friction
     Vector2 velocity;
     float mass, mu; //mu: coefficient of friction
@@ -51,6 +58,14 @@ struct Circle : PhysicsShape
 {
     float radius;
     Circle(Vector2 _pos, Vector2 _vel, float _m, float _mu);
+    void draw() override;
+};
+struct AABB : PhysicsShape
+{
+    Vector2 extents; //(width/2, height/2)
+    float xMin, xMax, yMin, yMax;
+    AABB(Vector2 _pos, Vector2 _vel, float _m, float _mu);
+    void updateMinMax();
     void draw() override;
 };
 struct Halfspace : PhysicsBody
@@ -90,5 +105,7 @@ class PhysicsSimulation
     //---------------------------------------------------------------------
     void handleCollision_CircleCircle(Circle *_a, Circle *_b);
     void handleCollision_CircleHalfspace(Circle *_cir, Halfspace *_hs);
+    void handleCollision_AABBAABB(AABB *_a, AABB *_b);
+    void handleCollision_CircleAABB(Circle *_cir, AABB *_aabb);
     void testFunc(); //TEST codes
 };

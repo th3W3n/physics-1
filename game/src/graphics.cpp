@@ -21,7 +21,6 @@ void draw(const std::vector<controlUI> &_sliders,
 {
     BeginDrawing();
     ClearBackground(BLACK);
-    DrawText("Wen Wen 101539831", 10, InitialHeight - 30, 20, LIGHTGRAY);
 
     //draw sliders and texts
     for (int i = 0; i < static_cast<int>(_sliders.size()); i++)
@@ -31,8 +30,6 @@ void draw(const std::vector<controlUI> &_sliders,
         _ui();
 
     //draw helper visual tools
-    const char *objCount = TextFormat("%d", PhysicsShape::count);
-    DrawText(objCount, InitialWidth - 10 - MeasureText(objCount, 30), InitialHeight - 40, 30, BLUE);
     DrawCircleV({x, y}, 5.0f, RED);
     DrawLineV({x, y}, {x + speedX * drawLineLengthFactor, y + speedY * drawLineLengthFactor}, RED);
     DrawLineV({x, y}, {x, y + g * drawLineLengthFactor}, GREEN);
@@ -41,6 +38,10 @@ void draw(const std::vector<controlUI> &_sliders,
     for (auto *obj : _objs)
         obj->draw();
 
+    //draw on top of everything so codes appear last
+    DrawText("Wen Wen 101539831", 10, InitialHeight - 30, 20, WHITE);
+    const char *objCount = TextFormat("%d", PhysicsShape::count);
+    DrawText(objCount, InitialWidth - 10 - MeasureText(objCount, 30), InitialHeight - 40, 30, WHITE);
     EndDrawing();
 }
 const char *getHalfspacesForDropdown(const std::vector<Halfspace *> &_hss)

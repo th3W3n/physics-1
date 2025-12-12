@@ -30,6 +30,10 @@ int main()
         if (GuiButton(Rectangle{1010, 220, 150, 50}, "New Halfspace"))
             createHalfspace = true;
     });
+    uis.emplace_back([]() {
+        if (GuiButton(Rectangle{1010, 280, 150, 50}, "Circle / AABB"))
+            isLaunchingAABB = !isLaunchingAABB;
+    });
 
     while (!WindowShouldClose())
     {
